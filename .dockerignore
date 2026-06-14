@@ -1,0 +1,15 @@
+node_modules
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+*.md
+.prettierrc
+.eslintrc*
+eslint.config.*
+jest.config.*
+test
+coverage
+*.log
+.DS_Store

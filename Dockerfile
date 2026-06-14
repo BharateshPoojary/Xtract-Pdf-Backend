@@ -14,7 +14,7 @@ FROM pnpm-base AS deps
 # Doing this before copying source code lets Docker cache the
 # dependency install layer and skip it on rebuilds if these files haven't changed.
 COPY package.json pnpm-lock.yaml ./ 
-# --frozen-lockfile flag ensures that the versions of all deps get locked and should not change automatiaclly it should install as per there in pnpm-lock
+# --frozen-lockfile flag ensures that the versions of all deps get locked and should not change automatically it should install as per there in pnpm-lock
 RUN pnpm install --frozen-lockfile
 
 # ─── Stage 3: Prod Dependencies Only (for running) ───────────────────────────

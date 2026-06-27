@@ -4,9 +4,10 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import * as path from 'path';
 import { getModelToken } from '@nestjs/mongoose';
-import { ExtractedDocument } from 'src/bank-statement/schema/bank-statement.schema';
+
 import { Model } from 'mongoose';
 import { AppModule } from '../src/app.module';
+import { ExtractedDocument } from '../src/bank-statement/schema/bank-statement.schema';
 
 describe('BankStatementController (e2e)', () => {
   let app: INestApplication<App>;

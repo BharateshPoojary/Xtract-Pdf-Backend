@@ -5,8 +5,9 @@ import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { getModelToken } from '@nestjs/mongoose';
 import { ExtractedDocument } from './schema/bank-statement.schema';
-import { AWSClientService } from 'src/aws/aws.service';
-import { AIClientService } from 'src/ai/ai.service';
+import { AWSClientService } from '../aws/aws.service';
+import { AIClientService } from '../ai/ai.service';
+
 //The main intention of this testing is to see whethercontroller is correctly calling the respective service methods or not
 describe('BankStatementController', () => {
   let controller: BankStatementController;

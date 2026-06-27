@@ -7,8 +7,8 @@ import {
   ExtractedDocument,
   ExtractedDocumentSchema,
 } from './schema/bank-statement.schema';
-import { AIModule } from 'src/ai/ai.module';
-import { AWSModule } from 'src/aws/aws.module';
+import { AIModule } from '../ai/ai.module';
+import { AWSModule } from '../aws/aws.module';
 
 @Module({
   imports: [

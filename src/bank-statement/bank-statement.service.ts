@@ -23,9 +23,9 @@ import {
   ExtractedDocument,
 } from './schema/bank-statement.schema';
 import { ConfigService } from '@nestjs/config';
-import { AWSClientService } from 'src/aws/aws.service';
-import { AIClientService } from 'src/ai/ai.service';
-import { BankStatementExtractor } from 'src/aws/prompt/extractor-prompt';
+import { AWSClientService } from '../aws/aws.service';
+import { AIClientService } from '../ai/ai.service';
+import { BankStatementExtractor } from '../aws/prompt/extractor-prompt';
 
 @Injectable()
 export class BankStatementService {

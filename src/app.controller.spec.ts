@@ -16,7 +16,9 @@ describe('AppController', () => {
 
   describe('root', () => {
     it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toEqual({ message: 'Hello Bharat FROM GITHIUB ACTION PUSH' });
+      expect(appController.getHello()).toEqual({
+        message: 'Hello Bharat FROM GITHIUB ACTION PUSH',
+      });
     });
   });
 });

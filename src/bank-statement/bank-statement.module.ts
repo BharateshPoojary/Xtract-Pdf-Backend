@@ -15,8 +15,8 @@ import { AWSModule } from 'src/aws/aws.module';
     MongooseModule.forFeature([
       { name: ExtractedDocument.name, schema: ExtractedDocumentSchema },
     ]),
-   AIModule,
-   AWSModule
+    AIModule,
+    AWSModule,
   ],
   providers: [BankStatementService],
   controllers: [BankStatementController],

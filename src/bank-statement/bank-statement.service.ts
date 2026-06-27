@@ -76,10 +76,9 @@ export class BankStatementService {
       const textractCommand = new StartDocumentTextDetectionCommand(
         textractParams,
       );
-      const data =
-        await this.awsClientService.getTextractClient().send(
-          textractCommand,
-        );
+      const data = await this.awsClientService
+        .getTextractClient()
+        .send(textractCommand);
       console.log('Textract job started:', data.JobId);
 
       if (data.JobId) {
@@ -167,7 +166,7 @@ export class BankStatementService {
   }
 
   private async getDocText(jobId: string, fileName: string) {
-    let allBlocks: any[] = [];
+    const allBlocks: any[] = [];
     let nextToken: string | undefined = undefined;
     let pageCount = 0;
 
@@ -242,8 +241,9 @@ export class BankStatementService {
     try {
       console.log('Raw Text', rawText);
 
-      const result =
-        await this.aiClientService.getClient().models.generateContent({
+      const result = await this.aiClientService
+        .getClient()
+        .models.generateContent({
           model: 'gemini-2.5-flash',
           contents: prompt,
         });

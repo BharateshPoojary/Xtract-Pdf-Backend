@@ -7,8 +7,6 @@ import { getModelToken } from '@nestjs/mongoose';
 import { ExtractedDocument } from 'src/bank-statement/schema/bank-statement.schema';
 import { Model } from 'mongoose';
 import { AppModule } from '../src/app.module';
-import { AIModule } from 'src/ai/ai.module';
-import { AWSModule } from 'src/aws/aws.module';
 
 describe('BankStatementController (e2e)', () => {
   let app: INestApplication<App>;
@@ -16,7 +14,7 @@ describe('BankStatementController (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports:[AppModule]
+      imports: [AppModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -65,7 +63,7 @@ describe('BankStatementController (e2e)', () => {
         .post('/upload')
         .expect(400)
         .expect((res) => {
-          expect(res.body.message).toBe('No file uploaded');
+          expect(res.body?.message).toBe('No file uploaded');
         });
     });
   });
@@ -90,14 +88,14 @@ describe('BankStatementController (e2e)', () => {
         .send({})
         .expect(400)
         .expect((res) => {
-          expect(res.body.message).toBe('Request body is empty');
+          expect(res.body?.message).toBe('Request body is empty');
         });
     });
   });
 
   // ─── GET /:jobId ──────────────────────────────────────────────────
   describe('GET /:jobId', () => {
-    let seededJobId: String;
+    let seededJobId: string;
 
     beforeEach(async () => {
       const doc = await extractedDocModel.create({
@@ -129,7 +127,7 @@ describe('BankStatementController (e2e)', () => {
         .get('/non-existent-job-id')
         .expect(404) // ✅ NotFoundException = 404
         .expect((res) => {
-          expect(res.body.message).toBe('Job not found');
+          expect(res.body?.message).toBe('Job not found');
         });
     });
   });

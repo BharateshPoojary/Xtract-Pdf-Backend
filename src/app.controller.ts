@@ -1,4 +1,4 @@
-import { Controller, Get, Req, Res } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 
 @Controller() //controllers are responsible  for handling a group of relevant requests
@@ -6,11 +6,10 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  getHello(): Record<string,string> {
+  getHello(): Record<string, string> {
     return this.appService.getHello();
   }
 }
-
 
 // import { Controller, Get, Req, Res } from '@nestjs/common';
 // import { AppService } from './app.service';
@@ -27,4 +26,3 @@ export class AppController {
 //   }
 //   // ↑ The entire thing is the method handler
 // }
-

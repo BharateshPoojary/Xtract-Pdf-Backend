@@ -8,5 +8,5 @@ const storageMock = {
   key: jest.fn(),
 };
 
-global.localStorage = storageMock as any;
-global.sessionStorage = storageMock as any;
+global.localStorage = storageMock;
+global.sessionStorage = storageMock;

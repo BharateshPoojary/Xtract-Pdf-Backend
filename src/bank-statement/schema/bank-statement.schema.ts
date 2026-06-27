@@ -3,7 +3,6 @@ import { HydratedDocument } from 'mongoose';
 
 export type ExtractedDocumentType = HydratedDocument<ExtractedDocument>;
 
-
 @Schema()
 class Transaction {
   @Prop({
@@ -102,7 +101,7 @@ export class ExtractedDocument {
     required: true,
     unique: true,
   })
-  jobId: String;
+  jobId: string;
 
   @Prop({
     required: true,
@@ -114,7 +113,7 @@ export class ExtractedDocument {
     enum: ['PROCESSING', 'COMPLETED', 'FAILED'],
     default: 'PROCESSING',
   })
-  status: String;
+  status: string;
 }
 
 export const ExtractedDocumentSchema =

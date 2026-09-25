@@ -1,98 +1,158 @@
+<h1 align="center">Xtract — Backend</h1>
+
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
+  A NestJS service that extracts structured bank-statement data from uploaded PDFs using AWS Textract for OCR and Google Gemini for AI normalization.
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<!-- ─────────────────────────────────────────────────────────────
+     📸  Add a screenshot / architecture diagram below.
+     Drop an image into a `docs/` folder and update the path,
+     or drag-and-drop directly into this section on GitHub.
+     ───────────────────────────────────────────────────────────── -->
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
+<p align="center">
+  <!-- <img src="docs/screenshot.png" alt="Xtract backend" width="800" /> -->
+  <em>Screenshot / architecture diagram coming soon</em>
 </p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+---
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Overview
 
-## Project setup
+The Xtract backend is the processing engine behind the [Xtract](../Xtract) web app. It accepts a bank-statement PDF, runs it through an asynchronous, event-driven pipeline, and returns clean, structured JSON:
 
-```bash
-$ pnpm install
+1. **Upload** — the PDF is stored in AWS S3 and an AWS Textract OCR job is started.
+2. **Extract** — when Textract finishes, it notifies the service via an SNS webhook. The raw OCR text is pulled, then normalized by Google Gemini into a consistent schema (accounts, balances, transactions).
+3. **Retrieve** — the result is saved to MongoDB against a `jobId`, which the client polls until the status is `COMPLETED`.
+
+## Tech Stack
+
+| Component            | Technology                                        |
+| -------------------- | ------------------------------------------------- |
+| Framework            | NestJS 11 (Express)                               |
+| Language             | TypeScript 5.7                                     |
+| File upload          | Multer (disk storage, `/tmp/uploads`, PDF ≤ 10 MB) |
+| Object storage       | AWS S3 (`@aws-sdk/client-s3`)                      |
+| PDF OCR              | AWS Textract (`@aws-sdk/client-textract`)          |
+| Async notifications  | AWS SNS (webhook callbacks)                        |
+| AI normalization     | Google Gemini 2.5 Flash (`@google/genai`)          |
+| Database             | MongoDB via Mongoose (`@nestjs/mongoose`)          |
+| Config               | `@nestjs/config` (global)                          |
+| Package manager      | pnpm 10.28.2                                        |
+| Container            | Docker (Node 20 Alpine, multi-stage, non-root)     |
+
+## Architecture & Data Flow
+
+```
+ POST /upload (PDF)
+      │  validate (pdf, ≤10MB) → upload to S3 → start Textract job
+      │  store { jobId, status: PROCESSING } in MongoDB
+      ▼
+ { message, jobId, s3Key }                      ← returned immediately
+
+ …AWS Textract runs OCR asynchronously…
+
+ POST /notify (SNS webhook)
+      │  confirm subscription (first call) → fetch OCR text (paginated LINE blocks)
+      │  send text to Google Gemini → normalized BankStatement[] JSON
+      ▼
+ update MongoDB { data, status: COMPLETED }
+
+ GET /:jobId  (client polls every ~2s)
+      ▼
+ { jobId, status, data }
 ```
 
-## Compile and run the project
+## API Endpoints
+
+All routes are registered at the root (no global prefix).
+
+| Method | Endpoint  | Description                                | Request                                | Response                                                        |
+| ------ | --------- | ------------------------------------------ | -------------------------------------- | -------------------------------------------------------------- |
+| `POST` | `/upload` | Upload a PDF and start extraction          | `multipart/form-data` → `file` (PDF ≤ 10 MB) | `{ message, jobId, s3Key }`                              |
+| `POST` | `/notify` | SNS webhook for Textract completion        | Raw SNS JSON body                       | `Subscription confirmed` / `Message received` / `OK`           |
+| `GET`  | `/:jobId` | Fetch extraction result by job ID          | URL param `jobId`                       | `{ jobId, status: PROCESSING\|COMPLETED\|FAILED, data: BankStatement[] }` |
+| `GET`  | `/test`   | Health check                               | —                                       | `{ message: "Hello" }`                                          |
+
+**`POST /upload`** — only `application/pdf` is accepted (max 10 MB). Returns `400` if the file is missing or not a PDF, `500` on an S3/Textract failure.
+
+**`GET /:jobId`** — returns `400` for an empty `jobId` and `404` if the job is not found.
+
+## Data Model
+
+- **`ExtractedDocument`** — `jobId` (unique), `data: BankStatement[]`, `status` (`PROCESSING` \| `COMPLETED` \| `FAILED`), timestamps.
+- **`BankStatement`** — `fileName`, `bankName`, `accountHolderName`, `accountNumber`, `accountType`, `currency` (default `INR`), `statementStartDate`, `statementEndDate`, `openingBalance`, `closingBalance`, `transactions[]`.
+- **`Transaction`** — `date`, `description`, `debitAmount`, `creditAmount`, `runningBalance`.
+
+## Environment Variables
+
+Create a `.env` file in the project root:
+
+| Variable          | Purpose                                        |
+| ----------------- | ---------------------------------------------- |
+| `MONGODB_URI`     | MongoDB connection string                      |
+| `S3_BUCKET_NAME`  | AWS S3 bucket for PDF uploads                  |
+| `ACCESS_KEY`      | AWS access key ID                              |
+| `SECRET_KEY`      | AWS secret access key                          |
+| `REGION`          | AWS region (e.g. `us-east-1`)                  |
+| `ROLE_ARN`        | IAM role ARN Textract uses to publish to SNS   |
+| `SNS_TOPIC_ARN`   | SNS topic ARN for Textract notifications       |
+| `GEMINI_API_KEY`  | Google Gemini API key                          |
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 10.28.2
+- A MongoDB instance
+- AWS credentials with access to S3, Textract, SNS, and an IAM role
+- A Google Gemini API key
+
+### Install
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm install
 ```
 
-## Run tests
+### Run
 
 ```bash
-# unit tests
-$ pnpm run test
+# development (watch mode)
+pnpm run start:dev
 
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+# production
+pnpm run build
+pnpm run start:prod
 ```
 
-## Deployment
+The server listens on **http://localhost:3001**.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Docker
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+docker build -t xtract-backend .
+docker run -p 3001:3001 --env-file .env xtract-backend
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Tests
 
-## Resources
+```bash
+pnpm run test        # unit tests
+pnpm run test:e2e    # end-to-end tests
+pnpm run test:cov    # coverage
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+## CI/CD
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+A GitHub Actions workflow (`.github/workflows/workflow.yml`) runs on push to `master`:
 
-## Support
+1. **Test** — install with `pnpm i --frozen-lockfile`, run `pnpm run test`, then `pnpm run build`.
+2. **Build & Push** — build the multi-stage Docker image and push to Docker Hub.
+3. **Deploy** — SSH into the VM and restart the container via Docker Compose, cleaning up dangling images.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Notes
 
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- The pipeline is fully asynchronous: `/upload` returns a `jobId` immediately; extraction completes later when Textract calls `/notify`. Clients track progress by polling `GET /:jobId`.
+- SNS webhook bodies are received as raw text (`app.useBodyParser('text')`) and parsed manually; CORS is enabled.
+- Gemini (`gemini-2.5-flash`) is prompted to normalize inconsistent labels, parse flexible date/currency formats, split debit/credit columns, and return strict JSON matching the `BankStatement[]` schema.

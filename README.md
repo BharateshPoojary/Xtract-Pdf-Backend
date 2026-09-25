@@ -4,15 +4,8 @@
   A NestJS service that extracts structured bank-statement data from uploaded PDFs using AWS Textract for OCR and Google Gemini for AI normalization.
 </p>
 
-<!-- ─────────────────────────────────────────────────────────────
-     📸  Add a screenshot / architecture diagram below.
-     Drop an image into a `docs/` folder and update the path,
-     or drag-and-drop directly into this section on GitHub.
-     ───────────────────────────────────────────────────────────── -->
-
 <p align="center">
-  <!-- <img src="docs/screenshot.png" alt="Xtract backend" width="800" /> -->
-  <em>Screenshot / architecture diagram coming soon</em>
+  <img src="docs/screenshot.png" alt="Xtract — extracted bank statement view" width="800" />
 </p>
 
 ---
